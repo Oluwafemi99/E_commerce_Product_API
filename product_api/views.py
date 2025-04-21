@@ -1,11 +1,11 @@
 from django.shortcuts import render
-from .models import Users, Product
-from .serializers import UserSerializer, ProductSerilizer
-from rest_framework import generics, permissions
+from .models import Users, Product, Category
+from .serializers import UserSerializer, ProductSerilizer, CategorySerializer
+from rest_framework import generics, permissions, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .pagination import ProductPagination
-from django.db.models import Q
+from .pagination import ProductPagination, CategoryPagination
+from django.core.exceptions import PermissionDenied
 
 
 # Create your views here.
@@ -37,8 +37,8 @@ class productCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         User = serializer.validated_data['User']
         if User != self.request.user:
-            return PermissionError({'You are not Authorised'})
-        serializer.save(user=self.request.user)
+            raise PermissionDenied({'You are not Authorised'})
+        serializer.save(User=self.request.user)
 
 
 class ProductDetailsView(generics.RetrieveAPIView):
@@ -84,7 +84,32 @@ class ProductSearchView(generics.ListAPIView):
 
 class ProductUpdateView(generics.UpdateAPIView):
     serializer_class = ProductSerilizer
-    permission_classes =[permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Product.objects.all()
 
-    def get_queryset(self):
-        return Product.objects.filter()
+    def perform_update(self, serializer):
+        product = self.get_object()
+        if product.User != self.request.user:
+            raise PermissionDenied({'you are not authorised'})
+        serializer.save(User=self.request.user)
+
+
+class ProductDeleteView(generics.DestroyAPIView):
+    serializer_class = ProductSerilizer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Product.objects.all()
+
+    def perform_destroy(self, instance):
+        if instance.User != self.request.user:
+            raise PermissionDenied({'You are not Authorised'})
+        instance.delete()
+
+
+class CategoryView(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CategorySerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    search_fields = ['Name', 'Description']
+    filterset_fields = ['Name']
+    pagination_class = CategoryPagination

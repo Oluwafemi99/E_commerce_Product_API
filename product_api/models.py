@@ -10,8 +10,11 @@ class Users(AbstractUser):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=20)
+    Name = models.CharField(max_length=20)
     Description = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.Name
 
 
 class Product(models.Model):

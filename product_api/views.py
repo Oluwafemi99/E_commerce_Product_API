@@ -1,11 +1,12 @@
 from django.shortcuts import render
-from .models import Users, Product, Category
-from .serializers import UserSerializer, ProductSerilizer, CategorySerializer
+from .models import Users, Product, Category, Reviews, ProductImage
+from .serializers import UserSerializer, ProductSerilizer, CategorySerializer, ReviewsSerializer, ProductImageSerializer
 from rest_framework import generics, permissions, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .pagination import ProductPagination, CategoryPagination
+from .pagination import ProductPagination, CategoryPagination, ReviewsPagination
 from django.core.exceptions import PermissionDenied
+from rest_framework import parsers
 
 
 # Create your views here.
@@ -50,9 +51,10 @@ class ProductDetailsView(generics.RetrieveAPIView):
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerilizer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = ProductPagination
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.all().order_by('-Created_at')
 
         # Apply optional filters
         category = self.request.query_params.get('Category', None)
@@ -106,10 +108,36 @@ class ProductDeleteView(generics.DestroyAPIView):
 
 
 class CategoryView(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().order_by('id')
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = CategorySerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     search_fields = ['Name', 'Description']
     filterset_fields = ['Name']
     pagination_class = CategoryPagination
+
+
+class ReviewsCreateView(generics.CreateAPIView):
+    queryset = Reviews.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ReviewsSerializer
+
+    def perform_create(self, serializer):
+        User = serializer.validated_data['User']
+        if User != self.request.user:
+            raise PermissionDenied({'You are not Authorised'})
+        serializer.save(User=self.request.user)
+
+
+class ReviewsListViews(generics.ListAPIView):
+    queryset = Reviews.objects.all().order_by('id')
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ReviewsSerializer
+    pagination_class = ReviewsPagination
+
+
+class productImageUploadView(generics.CreateAPIView):
+    queryset = ProductImage.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProductImageSerializer
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]

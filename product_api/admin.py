@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Users, Product, Category
+from .models import Users, Product, Category, Reviews, ProductImage
 
 
 # Register your models here.
@@ -16,3 +16,13 @@ class ProductAdmin(admin.ModelAdmin):
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ['Name', 'Description']
+
+
+@admin.register(Reviews)
+class ReviewsAdmin(admin.ModelAdmin):
+    list_display = ['id', 'User', 'Product', 'Comment', 'Ratings', 'Created_at']
+
+
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'Product', 'Image']

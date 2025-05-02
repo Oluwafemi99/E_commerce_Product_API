@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from . models import Product, Category
+from . models import Product, Category, Reviews, ProductImage
 from django.contrib.auth import get_user_model
+from PIL import Image
 
 Users = get_user_model()
 
@@ -27,8 +28,16 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'Name', 'Description']
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'Product', 'Image']
+
+
 class ProductSerilizer(serializers.ModelSerializer):
     Category = CategorySerializer
+    Images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -46,5 +55,24 @@ class ProductSerilizer(serializers.ModelSerializer):
 
     def validate_Stock_Quantity(self, value):
         if value < 0:
-            raise serializers.ValidationError(['Stock Quantity cannot be nagative'])
+            raise serializers.ValidationError({'Stock Quantity cannot be nagative'})
         return value
+
+    def validate_Image(self, value):
+        img = Image.open(value)
+        if img.format.lower() != 'jpeg':
+            raise serializers.ValidationError({'Error': 'Only JPEG format is allowed'})
+        return value
+
+    def validate_Image_size(self, value):
+        max_size_bytes = 5242880
+        if value > max_size_bytes:
+            raise serializers.ValidationError({'Error': f'Image size exceeds {max_size_bytes} MB'})
+        return value
+
+
+class ReviewsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Reviews
+        fields = ['id', 'User', 'Product', 'Comment', 'Ratings', 'Created_at']
